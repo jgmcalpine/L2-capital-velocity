@@ -15,6 +15,11 @@ REBALANCE_COST_SATS: int = 2_000  # Cost to refill a channel
 REBALANCE_LATENCY_SECONDS: int = 600  # Time delay to refill (10 minutes)
 REFILL_TARGET_PCT: float = 0.5  # When refilling, fill up to 50% of capacity
 
+# Ark/ASP (Ark Service Provider) constants
+ARK_POOL_CAPACITY: int = 50_000_000  # 50M sats - 10% of Legacy TVL (100 users * 5M * 50%)
+ARK_ROUND_INTERVAL: int = 600  # 10 minutes between settlement rounds
+ARK_ROUND_COST_SATS: int = 2_000  # Cost to put a round on-chain
+
 
 @dataclass(frozen=True)
 class SimulationConfig:

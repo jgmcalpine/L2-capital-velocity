@@ -11,6 +11,9 @@ env/
 data/
 *.csv
 
+# Generated output
+output/
+
 # Testing
 .pytest_cache/
 
