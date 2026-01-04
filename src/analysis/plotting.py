@@ -25,7 +25,11 @@ def _get_engine_color(engine_name: str) -> str:
     return ENGINE_COLORS.get(engine_name, "#3B82F6")
 
 
-def plot_comparison(results: Dict[str, SimulationResult], output_dir: str) -> None:
+def plot_comparison(
+    results: Dict[str, SimulationResult],
+    output_dir: str,
+    filename_suffix: str = "",
+) -> None:
     """
     Generate comparison charts for simulation results.
 
@@ -36,17 +40,19 @@ def plot_comparison(results: Dict[str, SimulationResult], output_dir: str) -> No
     Args:
         results: Dictionary mapping engine name to SimulationResult.
         output_dir: Directory path to save the generated plots.
+        filename_suffix: Optional suffix for output filenames (e.g., "_1000_users").
     """
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    _plot_tvl_comparison(results, output_path)
-    _plot_cost_tradeoff(results, output_path)
+    _plot_tvl_comparison(results, output_path, filename_suffix)
+    _plot_cost_tradeoff(results, output_path, filename_suffix)
 
 
 def _plot_tvl_comparison(
     results: Dict[str, SimulationResult],
     output_path: Path,
+    filename_suffix: str = "",
 ) -> None:
     """Generate TVL over time comparison chart."""
     plt.style.use("seaborn-v0_8-whitegrid")
@@ -82,15 +88,17 @@ def _plot_tvl_comparison(
     ax.set_xlim(left=0)
     ax.set_ylim(bottom=0)
 
+    filename = f"tvl_comparison{filename_suffix}.png"
     plt.tight_layout()
-    plt.savefig(output_path / "tvl_comparison.png", dpi=150, bbox_inches="tight")
+    plt.savefig(output_path / filename, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"Saved: {output_path / 'tvl_comparison.png'}")
+    print(f"Saved: {output_path / filename}")
 
 
 def _plot_cost_tradeoff(
     results: Dict[str, SimulationResult],
     output_path: Path,
+    filename_suffix: str = "",
 ) -> None:
     """Generate cost tradeoff bar chart (BTC-Days vs Operational Fees)."""
     plt.style.use("seaborn-v0_8-whitegrid")
@@ -159,8 +167,9 @@ def _plot_cost_tradeoff(
             fontweight="bold",
         )
 
+    filename = f"cost_tradeoff{filename_suffix}.png"
     plt.tight_layout()
-    plt.savefig(output_path / "cost_tradeoff.png", dpi=150, bbox_inches="tight")
+    plt.savefig(output_path / filename, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"Saved: {output_path / 'cost_tradeoff.png'}")
+    print(f"Saved: {output_path / filename}")
 
