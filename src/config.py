@@ -10,6 +10,11 @@ SECONDS_PER_HOUR: int = 3600
 LEGACY_CHANNEL_CAPACITY: int = 5_000_000  # 5M sats per user channel
 LEGACY_INITIAL_SPLIT: float = 0.5  # 50% LSP / 50% User
 
+# JIT/Splicing refill constants
+REBALANCE_COST_SATS: int = 2_000  # Cost to refill a channel
+REBALANCE_LATENCY_SECONDS: int = 600  # Time delay to refill (10 minutes)
+REFILL_TARGET_PCT: float = 0.5  # When refilling, fill up to 50% of capacity
+
 
 @dataclass(frozen=True)
 class SimulationConfig:

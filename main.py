@@ -6,6 +6,7 @@ import pandas as pd
 
 from src.config import SimulationConfig
 from src.engines.legacy_engine import LegacyEngine
+from src.engines.legacy_refill_engine import LegacyRefillEngine
 from src.engines.passthrough_engine import PassthroughEngine
 from src.models import Transaction, TransactionType, User, UserType
 from src.simulation.runner import SimulationResult, SimulationRunner
@@ -135,26 +136,97 @@ def main() -> None:
     legacy_result = legacy_runner.run()
     print_simulation_results(legacy_result)
 
+    # Run simulation with LegacyRefillEngine (JIT/Splicing liquidity management)
+    print("\nRunning simulation with LegacyRefillEngine...")
+    refill_engine = LegacyRefillEngine(user_ids)
+    refill_runner = SimulationRunner(TRAFFIC_CSV_PATH, refill_engine)
+    refill_result = refill_runner.run()
+    print_simulation_results(refill_result)
+    print_operational_costs(refill_result)
+
     # Print comparison summary
-    print_comparison_summary(passthrough_result, legacy_result)
+    print_comparison_summary(passthrough_result, legacy_result, refill_result)
 
 
-def print_comparison_summary(baseline: SimulationResult, legacy: SimulationResult) -> None:
-    """Print a comparison of baseline vs legacy engine results."""
+def print_operational_costs(result: SimulationResult) -> None:
+    """Print operational costs summary for engines with refill capability."""
+    stats = result.operational_stats
+    if not stats:
+        return
+
+    print("=" * 50)
+    print(f"Operational Costs - {result.engine_name} Engine")
+    print("=" * 50)
+    print(f"{'Refill Operations:':<30} {int(stats.get('refill_count', 0)):>15,}")
+    print(f"{'Total Fees Paid (BTC):':<30} {stats.get('total_fees_btc', 0):>15.8f}")
+    print(f"{'Avg Latency (seconds):':<30} {stats.get('avg_latency_seconds', 0):>15.2f}")
+    print("=" * 50 + "\n")
+
+
+def print_comparison_summary(
+    baseline: SimulationResult,
+    legacy: SimulationResult,
+    refill: SimulationResult | None = None,
+) -> None:
+    """Print a comparison of baseline vs legacy vs refill engine results."""
     baseline_btc = baseline.total_volume_processed / SATS_PER_BTC
     legacy_btc = legacy.total_volume_processed / SATS_PER_BTC
     legacy_failed_btc = legacy.total_volume_failed / SATS_PER_BTC
 
-    print("=" * 50)
-    print("Engine Comparison Summary")
-    print("=" * 50)
-    print(f"{'Metric':<30} {'Passthrough':>10} {'Legacy':>10}")
-    print("-" * 50)
-    print(f"{'Success Rate:':<30} {baseline.success_rate * 100:>9.1f}% {legacy.success_rate * 100:>9.1f}%")
-    print(f"{'Volume Processed (BTC):':<30} {baseline_btc:>10.4f} {legacy_btc:>10.4f}")
-    print(f"{'Failed Transactions:':<30} {baseline.tx_failure_count:>10,} {legacy.tx_failure_count:>10,}")
-    print(f"{'Failed Volume (BTC):':<30} {0.0:>10.4f} {legacy_failed_btc:>10.4f}")
-    print("=" * 50 + "\n")
+    if refill is None:
+        # Two-column comparison
+        print("=" * 50)
+        print("Engine Comparison Summary")
+        print("=" * 50)
+        print(f"{'Metric':<30} {'Passthrough':>10} {'Legacy':>10}")
+        print("-" * 50)
+        print(f"{'Success Rate:':<30} {baseline.success_rate * 100:>9.1f}% {legacy.success_rate * 100:>9.1f}%")
+        print(f"{'Volume Processed (BTC):':<30} {baseline_btc:>10.4f} {legacy_btc:>10.4f}")
+        print(f"{'Failed Transactions:':<30} {baseline.tx_failure_count:>10,} {legacy.tx_failure_count:>10,}")
+        print(f"{'Failed Volume (BTC):':<30} {0.0:>10.4f} {legacy_failed_btc:>10.4f}")
+        print("=" * 50 + "\n")
+    else:
+        # Three-column comparison
+        refill_btc = refill.total_volume_processed / SATS_PER_BTC
+        refill_failed_btc = refill.total_volume_failed / SATS_PER_BTC
+        refill_fees = refill.operational_stats.get("total_fees_btc", 0)
+
+        print("=" * 70)
+        print("Engine Comparison Summary")
+        print("=" * 70)
+        print(f"{'Metric':<30} {'Passthrough':>12} {'Legacy':>12} {'Refill':>12}")
+        print("-" * 70)
+        print(
+            f"{'Success Rate:':<30} "
+            f"{baseline.success_rate * 100:>11.1f}% "
+            f"{legacy.success_rate * 100:>11.1f}% "
+            f"{refill.success_rate * 100:>11.1f}%"
+        )
+        print(
+            f"{'Volume Processed (BTC):':<30} "
+            f"{baseline_btc:>12.4f} "
+            f"{legacy_btc:>12.4f} "
+            f"{refill_btc:>12.4f}"
+        )
+        print(
+            f"{'Failed Transactions:':<30} "
+            f"{baseline.tx_failure_count:>12,} "
+            f"{legacy.tx_failure_count:>12,} "
+            f"{refill.tx_failure_count:>12,}"
+        )
+        print(
+            f"{'Failed Volume (BTC):':<30} "
+            f"{0.0:>12.4f} "
+            f"{legacy_failed_btc:>12.4f} "
+            f"{refill_failed_btc:>12.4f}"
+        )
+        print(
+            f"{'Operational Fees (BTC):':<30} "
+            f"{0.0:>12.4f} "
+            f"{0.0:>12.4f} "
+            f"{refill_fees:>12.8f}"
+        )
+        print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":

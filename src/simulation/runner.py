@@ -20,6 +20,7 @@ class SimulationResult:
     tx_success_count: int
     tx_failure_count: int
     tvl_history: List[Tuple[float, float]] = field(default_factory=list)
+    operational_stats: dict = field(default_factory=dict)
 
     @property
     def total_transactions(self) -> int:
@@ -91,6 +92,9 @@ class SimulationRunner:
             current_tvl = self.engine.get_current_tvl()
             tvl_history.append((tx.timestamp, current_tvl))
 
+        # Collect operational stats from the engine
+        operational_stats = self.engine.get_operational_stats()
+
         return SimulationResult(
             engine_name=self.engine.get_name(),
             total_volume_processed=total_volume_processed,
@@ -98,6 +102,7 @@ class SimulationRunner:
             tx_success_count=tx_success_count,
             tx_failure_count=tx_failure_count,
             tvl_history=tvl_history,
+            operational_stats=operational_stats,
         )
 
     @staticmethod

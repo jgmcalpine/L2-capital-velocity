@@ -1,6 +1,7 @@
 """Abstract base class for LSP (Lightning Service Provider) engines."""
 
 from abc import ABC, abstractmethod
+from typing import Dict
 
 from src.models import Transaction
 
@@ -42,4 +43,16 @@ class AbstractLSPEngine(ABC):
         Returns:
             A string identifier for the engine (e.g. "Legacy", "Ark").
         """
+
+    def get_operational_stats(self) -> Dict[str, float]:
+        """
+        Get operational statistics for the engine.
+
+        Allows engines to report custom metrics like fees paid or average latency
+        without breaking the interface.
+
+        Returns:
+            Dictionary with engine-specific metrics. Default is empty.
+        """
+        return {}
 
