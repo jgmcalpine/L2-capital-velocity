@@ -11,6 +11,14 @@ class UserType(str, Enum):
     HODLER = "HODLER"
 
 
+class TransactionType(str, Enum):
+    """Classification of transaction flow direction."""
+
+    INTERNAL = "INTERNAL"
+    EXTERNAL_INBOUND = "EXTERNAL_INBOUND"
+    EXTERNAL_OUTBOUND = "EXTERNAL_OUTBOUND"
+
+
 class User(BaseModel):
     """Represents a single actor in the simulation."""
 
@@ -19,3 +27,15 @@ class User(BaseModel):
     user_id: int
     user_type: UserType
 
+
+class Transaction(BaseModel):
+    """Represents a single transaction in the simulation."""
+
+    model_config = ConfigDict(frozen=True)
+
+    tx_id: str
+    timestamp: float
+    sender_id: int
+    receiver_id: int
+    amount_sats: int
+    tx_type: TransactionType
