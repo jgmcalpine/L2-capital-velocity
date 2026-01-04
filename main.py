@@ -5,7 +5,10 @@ from typing import List
 import pandas as pd
 
 from src.config import SimulationConfig
-from src.models import Transaction, TransactionType, UserType
+from src.engines.legacy_engine import LegacyEngine
+from src.engines.passthrough_engine import PassthroughEngine
+from src.models import Transaction, TransactionType, User, UserType
+from src.simulation.runner import SimulationResult, SimulationRunner
 from src.traffic.traffic_generator import TrafficGenerator
 from src.traffic.user_generator import generate_users
 
@@ -78,8 +81,27 @@ def save_traffic_csv(df: pd.DataFrame, path: Path) -> None:
     print(f"Traffic data saved to: {path}")
 
 
+def print_simulation_results(result: SimulationResult) -> None:
+    """Print a formatted summary of simulation results."""
+    total_volume_btc = result.total_volume_processed / SATS_PER_BTC
+    failed_volume_btc = result.total_volume_failed / SATS_PER_BTC
+
+    print("\n" + "=" * 50)
+    print(f"Simulation Results - {result.engine_name} Engine")
+    print("=" * 50)
+    print(f"{'Total Transactions:':<30} {result.total_transactions:>15,}")
+    print(f"{'Successful:':<30} {result.tx_success_count:>15,}")
+    print(f"{'Failed:':<30} {result.tx_failure_count:>15,}")
+    print("-" * 50)
+    print(f"{'Success Rate:':<30} {result.success_rate * 100:>14.1f}%")
+    print("-" * 50)
+    print(f"{'Volume Processed (BTC):':<30} {total_volume_btc:>15.4f}")
+    print(f"{'Volume Failed (BTC):':<30} {failed_volume_btc:>15.4f}")
+    print("=" * 50 + "\n")
+
+
 def main() -> None:
-    """Initialize simulation, generate traffic, and export to CSV."""
+    """Initialize simulation, generate traffic, export to CSV, and run simulation."""
     config = SimulationConfig()
 
     # Generate user population
@@ -97,6 +119,42 @@ def main() -> None:
 
     # Save to CSV
     save_traffic_csv(df, TRAFFIC_CSV_PATH)
+
+    # Run simulation with PassthroughEngine (baseline - 100% success)
+    print("\nRunning simulation with PassthroughEngine...")
+    passthrough_engine = PassthroughEngine()
+    passthrough_runner = SimulationRunner(TRAFFIC_CSV_PATH, passthrough_engine)
+    passthrough_result = passthrough_runner.run()
+    print_simulation_results(passthrough_result)
+
+    # Run simulation with LegacyEngine (static Lightning channels)
+    print("\nRunning simulation with LegacyEngine...")
+    user_ids = [user.user_id for user in users]
+    legacy_engine = LegacyEngine(user_ids)
+    legacy_runner = SimulationRunner(TRAFFIC_CSV_PATH, legacy_engine)
+    legacy_result = legacy_runner.run()
+    print_simulation_results(legacy_result)
+
+    # Print comparison summary
+    print_comparison_summary(passthrough_result, legacy_result)
+
+
+def print_comparison_summary(baseline: SimulationResult, legacy: SimulationResult) -> None:
+    """Print a comparison of baseline vs legacy engine results."""
+    baseline_btc = baseline.total_volume_processed / SATS_PER_BTC
+    legacy_btc = legacy.total_volume_processed / SATS_PER_BTC
+    legacy_failed_btc = legacy.total_volume_failed / SATS_PER_BTC
+
+    print("=" * 50)
+    print("Engine Comparison Summary")
+    print("=" * 50)
+    print(f"{'Metric':<30} {'Passthrough':>10} {'Legacy':>10}")
+    print("-" * 50)
+    print(f"{'Success Rate:':<30} {baseline.success_rate * 100:>9.1f}% {legacy.success_rate * 100:>9.1f}%")
+    print(f"{'Volume Processed (BTC):':<30} {baseline_btc:>10.4f} {legacy_btc:>10.4f}")
+    print(f"{'Failed Transactions:':<30} {baseline.tx_failure_count:>10,} {legacy.tx_failure_count:>10,}")
+    print(f"{'Failed Volume (BTC):':<30} {0.0:>10.4f} {legacy_failed_btc:>10.4f}")
+    print("=" * 50 + "\n")
 
 
 if __name__ == "__main__":

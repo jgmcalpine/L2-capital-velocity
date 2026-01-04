@@ -6,6 +6,10 @@ from typing import Dict
 SECONDS_PER_DAY: int = 86400
 SECONDS_PER_HOUR: int = 3600
 
+# Legacy Lightning Network channel constants
+LEGACY_CHANNEL_CAPACITY: int = 5_000_000  # 5M sats per user channel
+LEGACY_INITIAL_SPLIT: float = 0.5  # 50% LSP / 50% User
+
 
 @dataclass(frozen=True)
 class SimulationConfig:
