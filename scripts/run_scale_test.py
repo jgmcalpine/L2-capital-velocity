@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Victory Lap 1 - Scale Test
+Scale Test
 
 Runs the L2 Capital Velocity simulation with 1,000 users to validate
 scalability and compare operational costs at scale.
@@ -240,7 +240,7 @@ def main() -> None:
     """Run the 1000-user scale test simulation."""
     print("\n" + "#" * 80)
     print("#" + " " * 78 + "#")
-    print("#" + "VICTORY LAP 1 - SCALE TEST (1000 USERS)".center(78) + "#")
+    print("#" + "SCALE TEST (1000 USERS)".center(78) + "#")
     print("#" + " " * 78 + "#")
     print("#" * 80 + "\n")
 

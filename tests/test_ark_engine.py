@@ -545,7 +545,8 @@ class TestArkVsLegacyComparison:
         user_ids = list(range(100))
 
         # Ark with 50M (10% of Legacy TVL)
-        ark_engine = ArkEngine(user_ids)
+        # Explicitly set pool_capacity to avoid dependency on config modifications
+        ark_engine = ArkEngine(user_ids, pool_capacity=50_000_000)
 
         assert ark_engine.get_current_tvl() == 50_000_000, "Ark TVL is 50M"
         assert ark_engine.get_total_user_count() == 100, "Ark serves 100 users"

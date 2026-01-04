@@ -35,6 +35,7 @@ class ArkEngine(AbstractLSPEngine):
         user_ids: List[int],
         pool_capacity: int = ARK_POOL_CAPACITY,
         user_initial_balance: int | None = None,
+        round_interval: int | None = None,
     ) -> None:
         """
         Initialize Ark engine with shared pool and user balances.
@@ -45,6 +46,8 @@ class ArkEngine(AbstractLSPEngine):
             user_initial_balance: Initial balance per user in sats.
                 Defaults to LEGACY_CHANNEL_CAPACITY * (1 - LEGACY_INITIAL_SPLIT)
                 for fair comparison with Legacy engine.
+            round_interval: Seconds between settlement rounds.
+                Defaults to ARK_ROUND_INTERVAL from config.
         """
         self._pool_capacity = pool_capacity
         self._pool_balance = pool_capacity
@@ -60,6 +63,7 @@ class ArkEngine(AbstractLSPEngine):
         }
 
         # Round tracking
+        self._round_interval = round_interval if round_interval is not None else ARK_ROUND_INTERVAL
         self._last_round_time: float = 0.0
         self._round_count: int = 0
 
@@ -97,11 +101,11 @@ class ArkEngine(AbstractLSPEngine):
             return
 
         elapsed = current_time - self._last_round_time
-        rounds_passed = int(elapsed // ARK_ROUND_INTERVAL)
+        rounds_passed = int(elapsed // self._round_interval)
 
         if rounds_passed > 0:
             self._round_count += rounds_passed
-            self._last_round_time += rounds_passed * ARK_ROUND_INTERVAL
+            self._last_round_time += rounds_passed * self._round_interval
             self._tvl_samples.append(self._pool_balance)
 
     def _process_external_outbound(self, sender_id: int, amount: int) -> bool:
@@ -164,6 +168,12 @@ class ArkEngine(AbstractLSPEngine):
 
     def get_name(self) -> str:
         """Returns the engine identifier."""
+        if self._round_interval != ARK_ROUND_INTERVAL:
+            hours = self._round_interval / 3600
+            if hours >= 1 and hours == int(hours):
+                return f"Ark-{int(hours)}h"
+            minutes = self._round_interval // 60
+            return f"Ark-{minutes}m"
         return "Ark"
 
     def get_operational_stats(self) -> Dict[str, float]:
