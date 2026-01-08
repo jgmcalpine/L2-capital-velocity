@@ -74,11 +74,14 @@ def draw_crosshairs(ax: plt.Axes, anchor_point: DataPoint) -> None:
     Draw crosshairs from the anchor point (Legacy Optimized).
     Creates a visual boundary - points in bottom-left rectangle are strictly better.
     """
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+    
     # Vertical line from anchor down to X-axis
     ax.axvline(
         x=anchor_point.x,
         ymin=0,
-        ymax=anchor_point.y / ax.get_ylim()[1],
+        ymax=anchor_point.y / ylim[1],
         color='grey',
         linestyle='--',
         linewidth=0.8,
@@ -86,11 +89,14 @@ def draw_crosshairs(ax: plt.Axes, anchor_point: DataPoint) -> None:
         zorder=2,
     )
     
-    # Horizontal line from anchor left to Y-axis
+    # Horizontal line from anchor left to Y-axis (x=0)
+    # Calculate relative position of x=0 in the axis range
+    x0_relative = (0 - xlim[0]) / (xlim[1] - xlim[0])
+    x_anchor_relative = (anchor_point.x - xlim[0]) / (xlim[1] - xlim[0])
     ax.axhline(
         y=anchor_point.y,
-        xmin=0,
-        xmax=anchor_point.x / ax.get_xlim()[1],
+        xmin=x0_relative,
+        xmax=x_anchor_relative,
         color='grey',
         linestyle='--',
         linewidth=0.8,
@@ -123,6 +129,44 @@ def draw_ark_trajectory(ax: plt.Axes) -> None:
         )
 
 
+def add_simulation_context_box(ax: plt.Axes) -> None:
+    """
+    Add a text box with simulation parameters in the center-right area.
+    """
+    context_text = (
+        "Simulation Parameters\n"
+        "• Users: 1,000 (91% Consumer / 4% Merchant)\n"
+        "• Duration: 30 Days\n"
+        "• Total Volume: ~37 BTC\n"
+        "• Traffic: Poisson + LogNormal"
+    )
+    
+    # Get axis limits to position box
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+    
+    # Position in center-right (y=0.6 relative to axes)
+    box_x = xlim[1] * 0.65  # 65% across x-axis
+    box_y = ylim[0] + (ylim[1] - ylim[0]) * 0.6  # 60% up y-axis (center-right)
+    
+    ax.text(
+        box_x,
+        box_y,
+        context_text,
+        bbox=dict(
+            boxstyle='round,pad=0.8',
+            facecolor='white',
+            edgecolor='grey',
+            linewidth=1.0,
+            alpha=0.85,  # Semi-transparent so grid lines show through slightly
+        ),
+        fontsize=9,
+        verticalalignment='center',
+        horizontalalignment='left',
+        zorder=20,
+    )
+
+
 def plot_points(ax: plt.Axes) -> None:
     """Plot all data points with their specified styles."""
     for point in POINTS:
@@ -148,14 +192,14 @@ def plot_points(ax: plt.Axes) -> None:
 
 
 def main() -> None:
-    """Generate and save the clean Pareto scatter plot."""
+    """Generate and save the clean, uncluttered Pareto scatter plot."""
     plt.style.use("seaborn-v0_8-whitegrid")
     fig, ax = plt.subplots(figsize=(10, 7))
     
     # Set axis limits first (needed for crosshairs calculation)
     max_x = max(p.x for p in POINTS) * 1.15
-    max_y = max(p.y for p in POINTS) * 1.10
-    ax.set_xlim(left=0, right=max_x)
+    max_y = max(p.y for p in POINTS) * 1.15  # Increased padding for headroom above Legacy points
+    ax.set_xlim(left=-0.005, right=max_x)  # Negative left limit to show x=0 marker fully
     ax.set_ylim(bottom=0, top=max_y)
     
     # Draw trajectory first (lowest zorder)
@@ -168,14 +212,30 @@ def main() -> None:
     # Plot points on top
     plot_points(ax)
     
-    # Formatting
-    ax.set_title("Capital Efficiency vs. Operational Cost", fontsize=14, fontweight="bold", pad=15)
-    ax.set_xlabel("Operational Fees (BTC) $\\leftarrow$ Lower is Better", fontsize=12)
-    ax.set_ylabel("Liquidity Cost (BTC-Days) $\\downarrow$ Lower is Better", fontsize=12)
+    # Add simulation context box
+    add_simulation_context_box(ax)
+    
+    # Enhanced formatting
+    ax.set_title(
+        "Capital Efficiency vs. Operational Cost",
+        fontsize=18,
+        fontweight="bold",
+        pad=20,
+    )
+    ax.set_xlabel(
+        "Operational Fees (BTC) $\\leftarrow$ Lower is Better",
+        fontsize=13,
+        fontweight='medium',
+    )
+    ax.set_ylabel(
+        "Liquidity Cost (BTC-Days) $\\downarrow$ Lower is Better",
+        fontsize=13,
+        fontweight='medium',
+    )
     
     ax.grid(alpha=0.3, linestyle='-', linewidth=0.5)
     
-    # Legend
+    # Legend in upper right to clear top-left corner
     ax.legend(
         loc="upper right",
         frameon=True,
@@ -185,8 +245,8 @@ def main() -> None:
     )
     
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = OUTPUT_DIR / "pareto_clean.png"
-    plt.tight_layout()
+    output_path = OUTPUT_DIR / "pareto_final_clean.png"
+    plt.tight_layout(pad=2.0)  # Tighter layout
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
     
